@@ -1,1 +1,51 @@
-name
+# ===== Terraform =====
+# Répertoire de travail local (providers téléchargés, plugins, cache)
+**/.terraform/*
+
+# Fichiers d'état : contiennent des données SENSIBLES (tokens, secrets) en clair
+*.tfstate
+*.tfstate.*
+
+# Fichiers de crash générés par Terraform
+crash.log
+crash.*.log
+
+# Fichiers de variables : contiennent souvent des secrets
+# (on garde les exemples *.tfvars.example pour la doc)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Fichiers d'override locaux
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Configuration CLI locale Terraform
+.terraformrc
+terraform.rc
+
+# NB : on NE PAS ignore .terraform.lock.hcl — HashiCorp recommande de le committer
+# (il fige les versions des providers pour toute l'équipe).
+
+# ===== Secrets / variables d'environnement =====
+.env
+*.env
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.*
+
+# ===== Kubernetes =====
+kubeconfig
+*.kubeconfig
+
+# ===== OS / IDE =====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
