@@ -1,0 +1,13 @@
+name: Intégration Continue Vault + Terraform + GitHub Actions CI sécurisée
+on:
+  push:
+    branches:
+      - preview
+  pull_request:
+    branches:
+      - main
+jobs:
+
+vault:
+
+
