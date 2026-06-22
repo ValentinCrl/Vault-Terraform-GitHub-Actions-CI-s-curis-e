@@ -7,15 +7,15 @@ on:
     branches:
       - main
 
-      
+
 jobs:
 
   terraform:
     name: "Terraform Init"
     runs-on: ubuntu-latest
-    #permissions: 
-      #contents: read
-      #security-events: write
+    permissions: 
+      contents: read
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
