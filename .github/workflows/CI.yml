@@ -8,20 +8,20 @@ on:
       - main
 jobs:
 
-  # vault:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: ./vault
+  vault:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./vault
 
-  #   services:
-  #     vault:
-  #       image: vault:1.13.3
-  #       ports:
-  #         - 8200:8200
-  #       env:
-  #         VAULT_DEV_ROOT_TOKEN_ID: root
-  #         VAULT_DEV_LISTEN_ADDRESS: "http://localhost:8200"
+    services:
+      vault:
+        image: vault:1.13.3
+        ports:
+          - 8200:8200
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: root
+          VAULT_DEV_LISTEN_ADDRESS: "http://localhost:8200"
 
 
   terraform:
