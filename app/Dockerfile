@@ -13,7 +13,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY recherche.html /usr/share/nginx/html/index.html
 
 # Exécution en utilisateur non-root (uid 101 fourni par l'image unprivileged)
-# USER nginx
+USER nginx
 
 # Port non privilégié
 EXPOSE 8080
