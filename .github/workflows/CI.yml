@@ -163,7 +163,7 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        run: docker build -t myapp/v1 .
+        run: docker build -t myapp/v1 ./app
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
