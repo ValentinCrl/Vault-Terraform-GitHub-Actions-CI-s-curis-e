@@ -127,57 +127,57 @@ jobs:
 
 
 
-  # Semgrep:
-  #   needs: terraform
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  Semgrep:
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  #     - name: Set up Semgrep
-  #       uses: returntocorp/semgrep-action@v1
+      - name: Set up Semgrep
+        uses: returntocorp/semgrep-action@v1
 
-  #     - name: Run Semgrep
-  #       run: semgrep --config=auto
+      - name: Run Semgrep
+        run: semgrep --config=auto
   
-  # trivy:
-  #   needs: terraform
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  trivy:
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  #     - name: Set up Trivy
-  #       uses: aquasecurity/trivy-action@v0.7.0
+      - name: Set up Trivy
+        uses: aquasecurity/trivy-action@v0.7.0
 
-  #     - name: Run Trivy
-  #       run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+      - name: Run Trivy
+        run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .
   
-  # zapbaseline:
-  #   needs: terraform
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  zapbaseline:
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  #     - name: Set up OWASP ZAP Baseline Scan
-  #       uses: zaproxy/action-baseline@v0.6.0
+      - name: Set up OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.6.0
 
-  #     - name: Run OWASP ZAP Baseline Scan
-  #       run: zap-baseline.py -t http://localhost:8080 -g gen.conf -r zap_report.html
+      - name: Run OWASP ZAP Baseline Scan
+        run: zap-baseline.py -t http://localhost:8080 -g gen.conf -r zap_report.html
   
-  # cosign:
-  #   needs: terraform
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  cosign:
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  #     - name: Set up Cosign
-  #       uses: sigstore/cosign-action@v1.3.0
+      - name: Set up Cosign
+        uses: sigstore/cosign-action@v1.3.0
 
-  #     - name: Sign artifacts with Cosign
-  #       run: cosign sign --key cosign.key <artifact>
+      - name: Sign artifacts with Cosign
+        run: cosign sign --key cosign.key <artifact>
 
 
 
