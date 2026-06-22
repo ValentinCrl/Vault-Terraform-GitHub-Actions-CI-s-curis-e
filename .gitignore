@@ -1,6 +1,7 @@
 # ===== Terraform =====
 # Répertoire de travail local (providers téléchargés, plugins, cache)
 **/.terraform/*
+**/DOCUMENTATION.md
 
 # Fichiers d'état : contiennent des données SENSIBLES (tokens, secrets) en clair
 *.tfstate
