@@ -151,18 +151,35 @@ jobs:
           name: semgrep-results
           path: semgrep-results.json
   
-  # trivy:
-  #   needs: terraform
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
+  trivy-scan:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
-  #     - name: Set up Trivy
-  #       uses: aquasecurity/trivy-action@v0.7.0
+      - name: Build image
+        run: docker build -t hashicorp/vault:2.0 .
 
-  #     - name: Run Trivy
-  #       run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+        with:
+          image-ref: 'hashicorp/vault:2.0'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
   
   # zapbaseline:
   #   needs: terraform
