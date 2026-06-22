@@ -162,13 +162,13 @@ jobs:
         with:
           persist-credentials: false
 
-      # - name: Build image
-      #   run: docker build -t hashicorp/vault:2.0 .
+      - name: Build image
+        run: docker build -t myapp/v1 .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
         with:
-          image-ref: 'hashicorp/vault:2.0'
+          image-ref: 'myapp/v1'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -180,7 +180,8 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
-  
+
+          
   # zapbaseline:
   #   needs: terraform
   #   runs-on: ubuntu-latest
