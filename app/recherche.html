@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moteur de recherche</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f5f7;
+      margin: 0;
+      padding: 40px 16px;
+      color: #1a1a2e;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      padding: 28px;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 20px;
+      text-align: center;
+    }
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border: 1px solid #d0d3da;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input[type="text"]:focus { border-color: #5b6bff; }
+    button {
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      background: #5b6bff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    button:hover { background: #4453e0; }
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: #f7f8fc;
+      border: 1px solid #eceef5;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      animation: fadeIn .2s ease;
+    }
+    li .remove {
+      background: none;
+      color: #b0b3bd;
+      font-size: 1.2rem;
+      padding: 0 6px;
+      cursor: pointer;
+    }
+    li .remove:hover { color: #e05b5b; }
+    .empty {
+      text-align: center;
+      color: #a0a3ad;
+      font-style: italic;
+      padding: 16px 0;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Moteur de recherche</h1>
+    <form class="search-bar" id="searchForm">
+      <input type="text" id="searchInput" placeholder="Écris un mot..." autocomplete="off" />
+      <button type="submit">Valider</button>
+    </form>
+    <ul id="resultsList"></ul>
+  </div>
+
+  <script>
+    const form = document.getElementById("searchForm");
+    const input = document.getElementById("searchInput");
+    const list = document.getElementById("resultsList");
+    const items = [];
+
+    function render() {
+      list.innerHTML = "";
+      if (items.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "empty";
+        empty.textContent = "Aucun mot ajouté pour l'instant";
+        list.appendChild(empty);
+        return;
+      }
+      items.forEach((word, index) => {
+        const li = document.createElement("li");
+        const span = document.createElement("span");
+        span.textContent = word;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "remove";
+        btn.textContent = "×";
+        btn.title = "Supprimer";
+        btn.addEventListener("click", () => {
+          items.splice(index, 1);
+          render();
+        });
+
+        li.appendChild(span);
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const word = input.value.trim();
+      if (word === "") return;
+      items.push(word);
+      input.value = "";
+      input.focus();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
