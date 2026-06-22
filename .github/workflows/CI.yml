@@ -124,7 +124,7 @@ jobs:
           sarif_file: results.sarif
 
   semgrep:
-    name: Analyse de sécurité
+    name: Semgrep - Analyse de sécurité
     runs-on: ubuntu-24.04
     container:
       image: returntocorp/semgrep
@@ -137,11 +137,12 @@ jobs:
       # Lancer le scan
       - name: Scan Semgrep
         run: |
-          semgrep --config=p/security-audit \
-                  --error \
-                  --json \
-                  -o semgrep-results.json \
-                  .
+          # semgrep --config=p/security-audit \
+          #         --error \
+          #         --json \
+          #         -o semgrep-results.json \
+          #         .
+          semgrep ci 
 
       # Sauvegarder les résultats même si le scan échoue
       - name: Upload des résultats
@@ -162,7 +163,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build image
+      - name: Build image myapp/v1
         run: docker build -t myapp/v1 ./app
 
       - name: Run Trivy vulnerability scanner
