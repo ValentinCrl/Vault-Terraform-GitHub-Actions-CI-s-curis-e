@@ -43,26 +43,25 @@ jobs:
           VAULT_DEV_ROOT_TOKEN_ID: root
           VAULT_DEV_LISTEN_ADDRESS: "http://localhost:8200"
 
+  # terraform:
+  #   needs: vault
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
 
-  terraform:
-    needs: vault
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+  #     - name: Set up Terraform
+  #       uses: hashicorp/setup-terraform@v1
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
+  #     - name: Terraform Init
+  #       run: terraform init
 
-      - name: Terraform Init
-        run: terraform init
+  #     - name: Terraform Plan
+  #       run: terraform plan
 
-      - name: Terraform Plan
-        run: terraform plan
-
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/preview'
-        run: terraform apply -auto-approve
+  #     - name: Terraform Apply
+  #       if: github.ref == 'refs/heads/preview'
+  #       run: terraform apply -auto-approve
 
   tflint:
     needs: terraform
