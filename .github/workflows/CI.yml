@@ -194,13 +194,12 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Start the application
-      run: |
-        # Start your application in the background
-        docker-compose up -d
-        # Wait for the application to be ready (adjust the sleep time as needed)
-        sleep 60
+    - name: Build image myapp/v1
+      run: docker build -t myapp/v1 ./app
 
+    - name: Run myapp/v1 container
+      run: docker run -d -p 8080:8080 myapp/v1
+      
     - name: ZAP Scan
       # permissions:
       #   contents: read
