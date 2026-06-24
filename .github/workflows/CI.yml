@@ -281,7 +281,9 @@ jobs:
           # tag sha256-<digest>.sig, que Harbor reconnaît comme signature.cosign
           # (coche verte "Signé"). Par défaut cosign v3 produit un Sigstore
           # bundle via referrers OCI 1.1 que Harbor classe en accessoire générique.
-          cosign sign --yes --new-bundle-format=false --key env://COSIGN_PRIVATE_KEY ${images}
+          # --use-signing-config=false : pas de config TUF Sigstore (inutile en
+          # signature par clé) ; sinon cosign v3 impose --new-bundle-format=true.
+          cosign sign --yes --new-bundle-format=false --use-signing-config=false --key env://COSIGN_PRIVATE_KEY ${images}
 
       - name: Verify signature (gate)
         env:
