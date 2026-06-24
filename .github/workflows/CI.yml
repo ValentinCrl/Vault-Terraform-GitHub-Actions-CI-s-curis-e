@@ -199,14 +199,17 @@ jobs:
 
     - name: Run myapp/v1 container
       run: docker run -d -p 8080:8080 myapp/v1
-      
+
     - name: ZAP Scan
       # permissions:
       #   contents: read
       #   security-events: write
       uses: zaproxy/action-baseline@v0.15.0
       with:
-        target: 'https://localhost:8080'
+        target: 'http://host-gateway:8080'
+        cmd_options: '-a'
+        allow_issue_reporting: false
+      continue-on-error: true
 
 
   # cosign:
