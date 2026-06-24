@@ -277,11 +277,11 @@ jobs:
             images+="${tag}@${DIGEST} "
           done
           # Cosign signe par digest (immuable), pas par tag mutable.
-          # --registry-referrers-mode=legacy : stocke la signature en tag
-          # sha256-<digest>.sig, que Harbor reconnaît comme signature.cosign
-          # (coche verte "Signé"). Sans ça, cosign v3 utilise l'API Referrers
-          # OCI 1.1 et Harbor classe la signature en accessoire générique.
-          cosign sign --yes --registry-referrers-mode=legacy --key env://COSIGN_PRIVATE_KEY ${images}
+          # --new-bundle-format=false : ancien format simplesigning stocké en
+          # tag sha256-<digest>.sig, que Harbor reconnaît comme signature.cosign
+          # (coche verte "Signé"). Par défaut cosign v3 produit un Sigstore
+          # bundle via referrers OCI 1.1 que Harbor classe en accessoire générique.
+          cosign sign --yes --new-bundle-format=false --key env://COSIGN_PRIVATE_KEY ${images}
 
       - name: Verify signature (gate)
         env:
@@ -292,4 +292,4 @@ jobs:
           # Dérive la clé publique depuis la clé privée pour vérifier la signature
           # qu'on vient de produire (la CI échoue si la vérif échoue → étape bloquante).
           cosign public-key --key env://COSIGN_PRIVATE_KEY > cosign.pub
-          cosign verify --key cosign.pub "${IMAGE}@${DIGEST}"
+          cosign verify --new-bundle-format=false --key cosign.pub "${IMAGE}@${DIGEST}"
