@@ -182,7 +182,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'    
-  #    
+      
   # zapbaseline:
   #   needs: terraform
   #   runs-on: ubuntu-latest
