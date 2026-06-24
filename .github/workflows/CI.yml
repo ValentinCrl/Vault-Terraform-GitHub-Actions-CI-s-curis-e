@@ -194,11 +194,13 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Build image myapp/v1
-      run: docker build -t myapp/v1 ./app
-
-    - name: Run myapp/v1 container
-      run: docker run -d -p 8080:8080 myapp/v1
+    - name: Build and Start Application
+      # Remplacez ceci par vos commandes de build/docker-compose pour lancer l'app
+      run: |
+        docker build -t my-app/v1 .
+        docker run -d --name my-app/v1 -p 8080:8080 my-app/v1
+        # Attendre que l'application soit prête
+        sleep 30
 
     - name: ZAP Scan
       # permissions:
@@ -206,10 +208,10 @@ jobs:
       #   security-events: write
       uses: zaproxy/action-baseline@v0.15.0
       with:
-        target: 'http://myapp:8080'
-        cmd_options: '-a'
-        allow_issue_reporting: false
-      continue-on-error: true
+        target: 'http://localhost:8080'
+      #   cmd_options: '-a'
+      #   allow_issue_reporting: false
+      # continue-on-error: true
 
 
   # cosign:
