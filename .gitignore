@@ -53,3 +53,4 @@ Thumbs.db
 
 # ===== APP =====
 **/app/.dockerignore
+.terraform.lock.hcl

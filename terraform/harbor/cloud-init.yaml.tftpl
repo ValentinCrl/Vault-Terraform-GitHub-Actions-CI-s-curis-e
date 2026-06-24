@@ -1,0 +1,41 @@
+#cloud-config
+package_update: true
+
+write_files:
+  # Variables d'installation (domaine, email, mot de passe admin, version Harbor)
+  - path: /etc/harbor.env
+    permissions: '0600'
+    encoding: b64
+    content: ${harbor_env_b64}
+
+  # Script d'installation de Harbor
+  - path: /opt/harbor-bootstrap.sh
+    permissions: '0755'
+    encoding: b64
+    content: ${bootstrap_b64}
+
+  # Service systemd qui exécute le script et le relance en cas d'échec
+  - path: /etc/systemd/system/harbor-bootstrap.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Bootstrap Harbor (Docker + Let's Encrypt + install)
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      EnvironmentFile=/etc/harbor.env
+      ExecStart=/opt/harbor-bootstrap.sh
+      Restart=on-failure
+      RestartSec=60
+      StandardOutput=append:/var/log/harbor-bootstrap.log
+      StandardError=append:/var/log/harbor-bootstrap.log
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - systemctl daemon-reload
+  - systemctl enable --now harbor-bootstrap.service

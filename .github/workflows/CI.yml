@@ -210,83 +210,77 @@ jobs:
         # continue-on-error: true
 
   cosign:
+    name: "Build, Push & Sign (Harbor)"
     needs: [zap-scan]
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
-      packages: write
-      # id-token: write # needed for signing the images with GitHub OIDC Token
 
-    name: build-image
+    # Pré-requis côté GitHub (Settings → Secrets and variables → Actions) :
+    #   Variables : HARBOR_HOST     = harbor.tondomaine.fr   (le domaine n'est pas un secret)
+    #   Secrets   : HARBOR_USERNAME = robot account Harbor (ex. robot$devsecops+ci)
+    #               HARBOR_PASSWORD = token du robot account
+    #               COSIGN_PRIVATE_KEY / COSIGN_PASSWORD (cosign generate-key-pair)
+    env:
+      IMAGE: ${{ vars.HARBOR_HOST }}/devsecops/moteur-recherche
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
-
-      - name: Build and Start Application
-        # Remplacez ceci par vos commandes de build/docker-compose pour lancer l'app
-        run: |
-          docker build -t myapp/v1 ./app
-          docker run -d --name myapp -p 8080:8080 myapp/v1
-          # Attendre que l'application soit prête
-          sleep 30
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v4.1.0
 
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v3.6.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v3.11.1
-
-      # - name: Login to GitHub Container Registry
-      #   uses: docker/login-action@v3.4.0
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.actor }}
-      #     password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.HARBOR_HOST }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
 
       - id: docker_meta
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/sigstore/sample-honk
+          images: ${{ env.IMAGE }}
           tags: type=sha,format=long
 
-      - name: Build and Push container images
-        uses: docker/build-push-action@v6.18.0
+      - name: Build and Push container image
+        uses: docker/build-push-action@v6
         id: build-and-push
         with:
+          context: ./app
           platforms: linux/amd64
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
 
       # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-      - name: Sign image with a key
-        run: |
-          images=""
-          for tag in ${TAGS}; do
-            images+="${tag}@${DIGEST} "
-          done
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${images}
+      - name: Sign image with Cosign (clé privée)
         env:
           TAGS: ${{ steps.docker_meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-
-      - name: Sign the images with GitHub OIDC Token
-        env:
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-          TAGS: ${{ steps.docker_meta.outputs.tags }}
         run: |
           images=""
           for tag in ${TAGS}; do
             images+="${tag}@${DIGEST} "
           done
-          cosign sign --yes ${images}
+          # Cosign signe par digest (immuable), pas par tag mutable.
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${images}
+
+      - name: Verify signature (gate)
+        env:
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          # Dérive la clé publique depuis la clé privée pour vérifier la signature
+          # qu'on vient de produire (la CI échoue si la vérif échoue → étape bloquante).
+          cosign public-key --key env://COSIGN_PRIVATE_KEY > cosign.pub
+          cosign verify --key cosign.pub "${IMAGE}@${DIGEST}"
