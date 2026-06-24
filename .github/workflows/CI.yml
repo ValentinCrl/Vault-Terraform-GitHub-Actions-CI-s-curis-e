@@ -197,8 +197,8 @@ jobs:
     - name: Build and Start Application
       # Remplacez ceci par vos commandes de build/docker-compose pour lancer l'app
       run: |
-        docker build -t my-app/v1 .
-        docker run -d --name my-app/v1 -p 8080:8080 my-app/v1
+        docker build -t myapp/v1 ./app
+        docker run -d --name myapp/v1 -p 8080:8080 myapp
         # Attendre que l'application soit prête
         sleep 30
 
