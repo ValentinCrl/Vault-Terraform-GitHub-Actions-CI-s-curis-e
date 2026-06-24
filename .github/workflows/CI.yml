@@ -138,11 +138,11 @@ jobs:
       - name: Scan Semgrep
         run: |
           semgrep --config=p/security-audit \
-          #         --error \
-          #         --json \
+                  --error \
+                   --json \
                    -o semgrep-results.json \
-          #         .
-          # semgrep ci 
+                 .
+          semgrep ci 
 
       # Sauvegarder les résultats même si le scan échoue
       - name: Upload des résultats
