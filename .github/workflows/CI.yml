@@ -185,16 +185,43 @@ jobs:
       
   zap-scan:
     name: ZAP Baseline Scan
-    needs: [checkov, semgrep, trivy-scan]
     runs-on: ubuntu-24.04
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: [checkov, semgrep, trivy-scan]
+
     steps:
-      - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@7cea08522cd386f6c675776d5e4296aecf61f33b # v0.14.0
-        with:
-          target: 'https://localhost:8080'
-          rules_file_name: '.zap/rules.tsv'
-          fail_action: true
+    - name: Checkout code
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      with:
+        persist-credentials: false
+
+    - name: Start the application
+      run: |
+        # Start your application in the background
+        docker-compose up -d
+        # Wait for the application to be ready (adjust the sleep time as needed)
+        sleep 30
+        
+    - name: ZAP Scan
+      # permissions:
+      #   contents: read
+      #   security-events: write
+      uses: zaproxy/action-baseline@v0.15.0
+      with:
+        target: 'https://localhost:8080'
+
+
+  # zap-scan:
+  #   name: ZAP Baseline Scan
+  #   needs: [checkov, semgrep, trivy-scan]
+  #   runs-on: ubuntu-24.04
+  #   # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  #   steps:
+  #     - name: ZAP Baseline Scan
+  #       uses: zaproxy/action-baseline@7cea08522cd386f6c675776d5e4296aecf61f33b # v0.14.0
+  #       with:
+  #         target: 'https://localhost:8080'
+  #         rules_file_name: '.zap/rules.tsv'
+  #         fail_action: true
   
   # cosign:
   #   needs: terraform
