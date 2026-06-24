@@ -277,7 +277,11 @@ jobs:
             images+="${tag}@${DIGEST} "
           done
           # Cosign signe par digest (immuable), pas par tag mutable.
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${images}
+          # --registry-referrers-mode=legacy : stocke la signature en tag
+          # sha256-<digest>.sig, que Harbor reconnaît comme signature.cosign
+          # (coche verte "Signé"). Sans ça, cosign v3 utilise l'API Referrers
+          # OCI 1.1 et Harbor classe la signature en accessoire générique.
+          cosign sign --yes --registry-referrers-mode=legacy --key env://COSIGN_PRIVATE_KEY ${images}
 
       - name: Verify signature (gate)
         env:
