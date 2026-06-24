@@ -14,7 +14,7 @@ jobs:
   terraform:
     name: "Terraform Init"
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       contents: read
       security-events: write
     steps:
@@ -23,7 +23,7 @@ jobs:
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
-          # terraform_version: 0.13.0:
+        # terraform_version: 0.13.0:
 
       - name: Terraform Format
         id: fmt
@@ -37,7 +37,6 @@ jobs:
     name: "Terraform Validate"
     runs-on: ubuntu-latest
     needs: terraform  # Optional: make it run after Terraform Init
-
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -55,33 +54,33 @@ jobs:
   tflint:
     name: "TFLint Scanning"
     runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-      name: Checkout source code
-
-    # - uses: actions/cache@v4
-    #   name: Cache plugin dir
-    #   with:
-    #     path: ~/.tflint.d/plugins
-    #     key: ${{ ubuntu-latest }}-tflint-${{ hashFiles('.tflint.hcl') }}
-
-    - uses: terraform-linters/setup-tflint@v4
-      name: Setup TFLint
-      with:
-        tflint_version: v0.52.0
-    - name: Show version
-      run: tflint --version
-
-    - name: Init TFLint
-      run: tflint --init
-      env:
-        # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
-        GITHUB_TOKEN: ${{ github.token }}
-
-    - name: Run TFLint
-      run: tflint -f compact
     needs: terraform-validate
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # - name: Cache plugin dir
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.tflint.d/plugins
+      #     key: ${{ ubuntu-latest }}-tflint-${{ hashFiles('.tflint.hcl') }}
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.52.0
+
+      - name: Show version
+        run: tflint --version
+
+      - name: Init TFLint
+        run: tflint --init
+        env:
+          # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run TFLint
+        run: tflint -f compact
 
   # This workflow contains a single job called "checkov"
   checkov:
@@ -106,10 +105,9 @@ jobs:
           # This will add both a CLI output to the console and create a results.sarif file
           output_format: cli,sarif
           output_file_path: console,results.sarif
-        
+
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
-        
         # Results are generated only on a success or failure
         # this is required since GitHub by default won't run the next step
         # when the previous one has failed. Security checks that do not pass will 'fail'.
@@ -124,7 +122,6 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: returntocorp/semgrep
-
     steps:
       # Récupérer le code
       - name: Checkout du code
@@ -135,10 +132,10 @@ jobs:
         run: |
           semgrep --config=p/security-audit \
                   --error \
-                   --json \
-                   -o semgrep-results.json \
-                 .
-          semgrep ci 
+                  --json \
+                  -o semgrep-results.json \
+                  .
+          semgrep ci
 
       # Sauvegarder les résultats même si le scan échoue
       - name: Upload des résultats
@@ -147,7 +144,7 @@ jobs:
         with:
           name: semgrep-results
           path: semgrep-results.json
-  
+
   trivy-scan:
     runs-on: ubuntu-24.04
     permissions:
@@ -181,38 +178,36 @@ jobs:
         uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'    
-      
+          sarif_file: 'trivy-results.sarif'
+
   zap-scan:
     runs-on: ubuntu-latest
     name: ZAP Baseline Scan
     needs: [checkov, semgrep, trivy-scan]
-
+    permissions:
+      contents: read
+      issues: write
     steps:
-    - name: Checkout code
-      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      with:
-        persist-credentials: false
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
-    - name: Build and Start Application
-      # Remplacez ceci par vos commandes de build/docker-compose pour lancer l'app
-      run: |
-        docker build -t myapp/v1 ./app
-        docker run -d --name myapp -p 8080:8080 myapp/v1
-        # Attendre que l'application soit prête
-        sleep 30
+      - name: Build and Start Application
+        # Remplacez ceci par vos commandes de build/docker-compose pour lancer l'app
+        run: |
+          docker build -t myapp/v1 ./app
+          docker run -d --name myapp -p 8080:8080 myapp/v1
+          # Attendre que l'application soit prête
+          sleep 30
 
-    - name: ZAP Scan
-      # permissions:
-      #   contents: read
-      #   security-events: write
-      uses: zaproxy/action-baseline@v0.15.0
-      with:
-        target: 'http://localhost:8080'
-      #   cmd_options: '-a'
-      #   allow_issue_reporting: false
-      # continue-on-error: true
-
+      - name: ZAP Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: 'http://localhost:8080'
+          # cmd_options: '-a'
+          # allow_issue_reporting: false
+        # continue-on-error: true
 
   # cosign:
   #   needs: terraform
@@ -220,13 +215,9 @@ jobs:
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@v2
-
+  #
   #     - name: Set up Cosign
   #       uses: sigstore/cosign-action@v1.3.0
-
+  #
   #     - name: Sign artifacts with Cosign
   #       run: cosign sign --key cosign.key <artifact>
-
-
-
-
