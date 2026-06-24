@@ -209,15 +209,15 @@ jobs:
           # allow_issue_reporting: false
         # continue-on-error: true
 
-  # cosign:
-  #   needs: terraform
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v2
-  #
-  #     - name: Set up Cosign
-  #       uses: sigstore/cosign-action@v1.3.0
-  #
-  #     - name: Sign artifacts with Cosign
-  #       run: cosign sign --key cosign.key <artifact>
+  cosign:
+    needs: [zap-scan]
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout code
+        uses: actions/checkout@v2
+  
+      - name: Set up Cosign
+        uses: sigstore/cosign-action@v1.3.0
+  
+      - name: Sign artifacts with Cosign
+        run: cosign sign --key cosign.key <artifact>
