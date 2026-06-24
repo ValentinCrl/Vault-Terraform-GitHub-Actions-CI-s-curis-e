@@ -13,7 +13,7 @@ permissions: read-all
 jobs:
 
   terraform:
-    name: "Terraform Init"
+    name: "Terraform Format"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,13 +26,9 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         # terraform_version: 0.13.0:
 
-      - name: Terraform Format
+      - name: Terraform Format (tous les modules, récursif)
         id: fmt
-        run: terraform fmt
-
-      - name: Terraform Init
-        id: init
-        run: terraform init
+        run: terraform fmt -check -recursive
 
   terraform-validate:
     name: "Terraform Validate"
@@ -45,12 +41,15 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Validate
+      - name: Terraform Init + Validate (tous les modules)
         id: validate
-        run: terraform validate -no-color
+        run: |
+          for dir in terraform terraform/harbor; do
+            echo "::group::validate $dir"
+            terraform -chdir="$dir" init -backend=false
+            terraform -chdir="$dir" validate -no-color
+            echo "::endgroup::"
+          done
 
   tflint:
     name: "TFLint Scanning"
@@ -74,14 +73,19 @@ jobs:
       - name: Show version
         run: tflint --version
 
-      - name: Init TFLint
-        run: tflint --init
+      - name: Run TFLint (tous les modules)
         env:
           # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
           GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Run TFLint
-        run: tflint -f compact
+          # Même config (.tflint.hcl) appliquée à tous les modules, quel que soit --chdir
+          TFLINT_CONFIG_FILE: ${{ github.workspace }}/terraform/.tflint.hcl
+        run: |
+          for dir in terraform terraform/harbor; do
+            echo "::group::tflint $dir"
+            tflint --chdir="$dir" --init
+            tflint --chdir="$dir" -f compact
+            echo "::endgroup::"
+          done
 
   # This workflow contains a single job called "checkov"
   checkov:
