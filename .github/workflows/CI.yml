@@ -184,8 +184,8 @@ jobs:
           sarif_file: 'trivy-results.sarif'    
       
   zap-scan:
+    runs-on: ubuntu-latest
     name: ZAP Baseline Scan
-    runs-on: ubuntu-24.04
     needs: [checkov, semgrep, trivy-scan]
 
     steps:
@@ -199,8 +199,8 @@ jobs:
         # Start your application in the background
         docker-compose up -d
         # Wait for the application to be ready (adjust the sleep time as needed)
-        sleep 30
-        
+        sleep 60
+
     - name: ZAP Scan
       # permissions:
       #   contents: read
@@ -210,19 +210,6 @@ jobs:
         target: 'https://localhost:8080'
 
 
-  # zap-scan:
-  #   name: ZAP Baseline Scan
-  #   needs: [checkov, semgrep, trivy-scan]
-  #   runs-on: ubuntu-24.04
-  #   # if: ${{ github.event.workflow_run.conclusion == 'success' }}
-  #   steps:
-  #     - name: ZAP Baseline Scan
-  #       uses: zaproxy/action-baseline@7cea08522cd386f6c675776d5e4296aecf61f33b # v0.14.0
-  #       with:
-  #         target: 'https://localhost:8080'
-  #         rules_file_name: '.zap/rules.tsv'
-  #         fail_action: true
-  
   # cosign:
   #   needs: terraform
   #   runs-on: ubuntu-latest
