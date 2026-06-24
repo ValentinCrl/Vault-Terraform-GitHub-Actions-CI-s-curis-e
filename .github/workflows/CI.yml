@@ -183,18 +183,16 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'    
       
-  zapbaseline:
-    needs: terraform
-    runs-on: ubuntu-latest
+  zap-scan:
+    runs-on: ubuntu-24.04
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up OWASP ZAP Baseline Scan
-        uses: zaproxy/zap-stable@2.17.0
-
-      - name: Run OWASP ZAP Baseline Scan
-        run: zap-baseline.py -t http://localhost:8080 -g gen.conf -r zap_report.html
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@7cea08522cd386f6c675776d5e4296aecf61f33b # v0.14.0
+        with:
+          target: 'https://staging.mon-app.example.com'
+          rules_file_name: '.zap/rules.tsv'
+          fail_action: true
   
   # cosign:
   #   needs: terraform
