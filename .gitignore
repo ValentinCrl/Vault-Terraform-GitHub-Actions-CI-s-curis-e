@@ -54,3 +54,6 @@ Thumbs.db
 # ===== APP =====
 **/app/.dockerignore
 .terraform.lock.hcl
+SOUTENANCE.md
+soutenance.pptx
+soutenance-slides.md

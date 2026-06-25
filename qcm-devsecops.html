@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QCM — Vault + Terraform + GitHub Actions CI sécurisée</title>
+<style>
+  :root{
+    --bg:#0f1320; --card:#181d2e; --card2:#1f2640; --txt:#e7ebf5; --muted:#9aa6c4;
+    --accent:#6c8cff; --green:#37d399; --red:#ff6b6b; --amber:#ffcc66; --line:#2b3350;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:linear-gradient(160deg,#0c0f1a,#11162a);color:var(--txt);line-height:1.55;}
+  .wrap{max-width:860px;margin:0 auto;padding:32px 20px 80px;}
+  header h1{font-size:1.6rem;margin:0 0 6px;}
+  header p{color:var(--muted);margin:0 0 18px;}
+  .bar{position:sticky;top:0;z-index:10;background:rgba(15,19,32,.92);backdrop-filter:blur(6px);
+       border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:22px;
+       display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  .bar .prog{flex:1;min-width:140px;height:8px;background:var(--card2);border-radius:8px;overflow:hidden;}
+  .bar .prog>span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .3s;}
+  .pill{font-size:.8rem;color:var(--muted);white-space:nowrap;}
+  .score{font-weight:700;}
+  .cat{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);
+       font-weight:700;margin-bottom:6px;}
+  .q{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:18px;
+     box-shadow:0 6px 24px rgba(0,0,0,.25);}
+  .q .num{color:var(--muted);font-size:.8rem;}
+  .q h3{margin:4px 0 14px;font-size:1.06rem;font-weight:600;}
+  .opt{display:block;border:1px solid var(--line);background:var(--card2);border-radius:12px;
+       padding:12px 14px;margin:8px 0;cursor:pointer;transition:.15s;font-size:.97rem;}
+  .opt:hover{border-color:var(--accent);}
+  .opt.sel{border-color:var(--accent);background:#243056;}
+  .opt.correct{border-color:var(--green);background:rgba(55,211,153,.14);}
+  .opt.wrong{border-color:var(--red);background:rgba(255,107,107,.12);}
+  .opt .mk{font-weight:700;margin-right:8px;color:var(--muted);}
+  .expl{display:none;margin-top:12px;padding:12px 14px;border-left:3px solid var(--accent);
+        background:rgba(108,140,255,.08);border-radius:8px;font-size:.92rem;color:#d4dcf2;}
+  .expl.show{display:block;}
+  .expl b{color:var(--amber);}
+  .btns{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+  button{font:inherit;border:none;border-radius:10px;padding:11px 20px;cursor:pointer;font-weight:600;}
+  .primary{background:var(--accent);color:#fff;}
+  .primary:disabled{opacity:.4;cursor:not-allowed;}
+  .ghost{background:transparent;color:var(--txt);border:1px solid var(--line);}
+  .result{display:none;background:var(--card);border:1px solid var(--line);border-radius:16px;
+          padding:28px;text-align:center;margin-bottom:18px;}
+  .result.show{display:block;}
+  .result .big{font-size:2.6rem;font-weight:800;}
+  .result .msg{color:var(--muted);margin-top:6px;}
+  code{background:#0c1020;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.88em;}
+  footer{color:var(--muted);font-size:.8rem;text-align:center;margin-top:30px;}
+  .toggle{margin-left:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔐 QCM — Vault + Terraform + GitHub Actions CI sécurisée</h1>
+    <p>Pipeline DevSecOps : technologies, jobs, enchaînement et étapes de validation. Coche une réponse par question, valide à la fin.</p>
+  </header>
+
+  <div class="bar">
+    <span class="pill" id="counter">0 / 0 répondues</span>
+    <div class="prog"><span id="progfill"></span></div>
+    <span class="pill score" id="scorePill">Score : –</span>
+    <label class="pill toggle"><input type="checkbox" id="instant"> Correction immédiate</label>
+  </div>
+
+  <div class="result" id="result"></div>
+  <div id="quiz"></div>
+
+  <div class="btns">
+    <button class="primary" id="submit">Valider mes réponses</button>
+    <button class="ghost" id="reset">Recommencer / Mélanger</button>
+  </div>
+
+  <footer>QCM généré à partir de <code>CI.yml</code>, <code>DOCUMENTATION.md</code> et de l'architecture du projet (kind, Vault, Harbor/Hetzner, Cosign).</footer>
+</div>
+
+<script>
+const QUESTIONS = [
+  // ---------- TECHNOS ----------
+  {cat:"Technologies", q:"Quel outil joue le rôle de « coffre-fort à secrets » déployé dans ce projet ?",
+   opts:["HashiCorp Vault","HashiCorp Consul","Helm","Checkov"], a:0,
+   e:"<b>Vault</b> est l'application centrale : il stocke mots de passe, tokens et certificats. Il est déployé sur le cluster en mode dev via Helm."},
+
+  {cat:"Technologies", q:"Sur quel type de cluster Kubernetes Vault est-il déployé en local ?",
+   opts:["k3s","kind (Kubernetes IN Docker)","minikube","un cluster EKS"], a:1,
+   e:"<b>kind</b> (cluster <code>kind-cluster-devops</code>) fait tourner un cluster Kubernetes complet à l'intérieur de Docker, sur le PC."},
+
+  {cat:"Technologies", q:"Quel outil installe Vault dans le cluster sous forme de « chart » ?",
+   opts:["kubectl","Terraform seul","Helm (provider helm)","Docker Compose"], a:2,
+   e:"Terraform appelle le <b>provider Helm</b> pour installer le chart officiel <code>vault</code> du dépôt <code>helm.releases.hashicorp.com</code>."},
+
+  {cat:"Technologies", q:"En mode dev, comment Vault stocke-t-il ses données et quel est son état au démarrage ?",
+   opts:["Stockage sur disque, scellé (sealed)","Stockage en mémoire (inmem), déscellé automatiquement","Base PostgreSQL, scellé","Stockage S3, déscellé"], a:1,
+   e:"Mode dev = <b>1 pod, stockage en mémoire (inmem), déscellé (unsealed) automatiquement</b>, token root fixe. Pratique pour tester, jamais en production (tout est perdu au redémarrage)."},
+
+  {cat:"Technologies", q:"Quel registre d'images de conteneurs est utilisé pour stocker l'image signée ?",
+   opts:["Docker Hub","GitHub Container Registry (ghcr.io)","Harbor","Amazon ECR"], a:2,
+   e:"<b>Harbor</b> est le registre. L'image est poussée vers <code>HARBOR_HOST/devsecops/moteur-recherche</code>."},
+
+  {cat:"Technologies", q:"Pourquoi Harbor est-il déployé sur un VPS public Hetzner et non sur le cluster kind local ?",
+   opts:["Pour réduire les coûts","Parce que le runner cloud GitHub Actions ne peut pas joindre un registre sur le localhost/kind du PC","Parce que kind n'accepte pas Docker","Pour avoir plus de stockage"], a:1,
+   e:"Le runner GitHub Actions est dans le cloud : il doit faire <code>docker push</code> + <code>cosign sign</code>. Il <b>ne peut pas atteindre un registre sur le localhost</b> du poste. Un VPS public avec domaine + TLS Let's Encrypt règle le problème."},
+
+  {cat:"Technologies", q:"Quelle base est utilisée pour l'image de l'application, et avec quelle particularité de sécurité ?",
+   opts:["nginx standard en root sur le port 80","nginxinc/nginx-unprivileged : tourne en non-root (uid 101) sur le port 8080","alpine vide","httpd Apache en root"], a:1,
+   e:"L'image <code>nginx-unprivileged:1.27-alpine</code> est déjà <b>durcie</b> : exécution en <b>non-root (uid 101)</b>, écoute sur le port non privilégié <b>8080</b>, avec un HEALTHCHECK."},
+
+  // ---------- JOBS & ENCHAINEMENT ----------
+  {cat:"Jobs & enchaînement", q:"Quel mot-clé GitHub Actions crée la dépendance « ne démarre qu'après » entre deux jobs ?",
+   opts:["depends_on","needs","after","requires"], a:1,
+   e:"<code>needs</code> chaîne les jobs : si un maillon échoue, la suite ne tourne pas."},
+
+  {cat:"Jobs & enchaînement", q:"Quel est l'ordre correct de la chaîne de validation Terraform ?",
+   opts:["validate → fmt → tflint → checkov","terraform (fmt) → terraform-validate → tflint → checkov","checkov → tflint → validate → fmt","tflint → checkov → validate → fmt"], a:1,
+   e:"La chaîne (via <code>needs</code>) est : <b>terraform (fmt)</b> → <b>terraform-validate</b> → <b>tflint</b> → <b>checkov</b>."},
+
+  {cat:"Jobs & enchaînement", q:"Le job final qui build, push et signe l'image (cosign) dépend de quel job ?",
+   opts:["checkov","trivy-scan","zap-scan","semgrep"], a:2,
+   e:"Le job <code>cosign</code> a <code>needs: [zap-scan]</code>. Et <code>zap-scan</code> dépend lui-même de <code>[checkov, semgrep, trivy-scan]</code> : la signature n'a lieu qu'après tous les scans de sécurité."},
+
+  {cat:"Jobs & enchaînement", q:"De quels jobs dépend le job zap-scan (DAST) ?",
+   opts:["Uniquement terraform","checkov, semgrep et trivy-scan","cosign uniquement","aucun, il est indépendant"], a:1,
+   e:"<code>zap-scan</code> a <code>needs: [checkov, semgrep, trivy-scan]</code> : il attend les scans SAST/IaC/conteneur avant de lancer le scan dynamique."},
+
+  {cat:"Jobs & enchaînement", q:"Sur quelles branches le workflow se déclenche-t-il ?",
+   opts:["main uniquement","push sur main et staging, + pull_request vers main","seulement les pull requests","toutes les branches"], a:1,
+   e:"Déclencheurs : <code>push</code> sur <b>main</b> et <b>staging</b>, ainsi que <code>pull_request</code> vers <b>main</b>. <code>staging</code> sert de branche de test, <code>main</code> reste un filet de sécurité."},
+
+  {cat:"Jobs & enchaînement", q:"Que vaut la permission globale du workflow, et pourquoi ?",
+   opts:["write-all, pour tout autoriser","read-all, pour appliquer le moindre privilège (chaque job redemande plus si besoin)","aucune permission","admin"], a:1,
+   e:"<code>permissions: read-all</code> applique le <b>principe du moindre privilège</b>. Les jobs qui doivent publier (ex. SARIF) redemandent explicitement <code>security-events: write</code>."},
+
+  // ---------- ETAPES DE VALIDATION ----------
+  {cat:"Étapes de validation", q:"Que vérifie l'étape « terraform fmt -check -recursive » ?",
+   opts:["La sécurité du code","Que tous les modules sont correctement formatés/indentés (sans les modifier)","Que les providers sont à jour","Que Vault est déscellé"], a:1,
+   e:"<code>fmt -check</code> échoue si le code n'est pas mis en forme. Le <code>-recursive</code> couvre <b>tous les modules</b> (Vault + Harbor)."},
+
+  {cat:"Étapes de validation", q:"Pourquoi « terraform init -backend=false » dans le job de validation ?",
+   opts:["Pour appliquer l'infra","Pour initialiser les providers sans configurer/contacter le backend d'état distant (validation pure)","Pour détruire l'état","Pour signer l'image"], a:1,
+   e:"<code>-backend=false</code> permet d'initialiser et de <code>validate</code> la config <b>sans toucher au backend d'état</b> : on valide la syntaxe, on ne déploie rien."},
+
+  {cat:"Étapes de validation", q:"Quel est le rôle de TFLint dans la pipeline ?",
+   opts:["Scanner les vulnérabilités des conteneurs","Linter de qualité du code Terraform (bonnes pratiques, erreurs)","Signer les images","Déployer Vault"], a:1,
+   e:"<b>TFLint</b> (v0.52.0) est un <b>linter</b> : il vérifie que le code Terraform est propre, cohérent et sans erreurs, sur tous les modules."},
+
+  {cat:"Étapes de validation", q:"Checkov est un scanner de quel type ?",
+   opts:["DAST (dynamique)","SAST / sécurité de l'Infrastructure as Code (IaC)","Scanner de licences","Fuzzer"], a:1,
+   e:"<b>Checkov</b> analyse statiquement le code IaC à la recherche de mauvaises configurations de sécurité. Il produit du <b>SARIF</b> publié dans l'onglet Security."},
+
+  {cat:"Étapes de validation", q:"Pourquoi Checkov ne remonte-t-il aucun résultat sur le module Vault local ?",
+   opts:["Le code est parfait et impossible à analyser","Checkov n'embarque aucune politique pour helm_release / kubernetes_namespace (ni pour le provider hcloud)","Checkov est désactivé","Le scan a échoué silencieusement"], a:1,
+   e:"Checkov ne « compte » une ressource que s'il a au moins une règle pour son type. Il n'a <b>pas de politique</b> pour <code>helm_release</code>, <code>kubernetes_namespace</code> ni le provider <code>hcloud</code> (Harbor). Comportement normal, pas un bug."},
+
+  {cat:"Étapes de validation", q:"Que scanne Semgrep, et comment ce job s'exécute-t-il ?",
+   opts:["Les images Docker, sur ubuntu-latest","Le code source (SAST), dans un conteneur returntocorp/semgrep","L'état Terraform","Le réseau"], a:1,
+   e:"<b>Semgrep</b> fait du SAST sur le <b>code source</b> (règles <code>p/security-audit</code>), dans le conteneur <code>returntocorp/semgrep</code>. Job indépendant, résultats uploadés en artefact avec <code>if: always()</code>."},
+
+  {cat:"Étapes de validation", q:"Que fait précisément le job trivy-scan ?",
+   opts:["Il scanne le code Terraform","Il build l'image Docker (myapp/v1) puis scanne ses vulnérabilités CRITICAL/HIGH","Il signe l'image","Il déploie sur Harbor"], a:1,
+   e:"Trivy <b>build l'image</b> <code>docker build -t myapp/v1 ./app</code> puis scanne les vulnérabilités <b>CRITICAL,HIGH</b>, en SARIF, avec <code>ignore-unfixed: true</code>."},
+
+  {cat:"Étapes de validation", q:"Le job trivy-scan utilise « exit-code: '0' ». Quelle conséquence ?",
+   opts:["Il bloque la CI dès qu'une vulnérabilité est trouvée","Il reste informatif : il ne casse PAS la CI même si des vulnérabilités sont détectées","Il ignore tous les résultats","Il signe l'image si 0 vuln"], a:1,
+   e:"<code>exit-code: 0</code> rend le scan <b>non bloquant</b> : les résultats remontent dans l'onglet Security sans faire échouer la pipeline. (Le sujet du projet souhaiterait à terme le rendre bloquant.)"},
+
+  {cat:"Étapes de validation", q:"ZAP Baseline réalise quel type d'analyse ?",
+   opts:["SAST statique du code","DAST : analyse dynamique de l'application qui tourne (http://localhost:8080)","Scan de l'IaC","Vérification de signature"], a:1,
+   e:"<b>OWASP ZAP</b> fait du <b>DAST</b> : il lance l'app (build + <code>docker run</code> sur le port 8080) puis l'attaque depuis l'extérieur pour détecter des failles à l'exécution."},
+
+  {cat:"Étapes de validation", q:"Sous quel format les résultats de sécurité (Checkov, Trivy) remontent-ils dans GitHub ?",
+   opts:["JSON brut uniquement","SARIF, publié via github/codeql-action/upload-sarif dans l'onglet Security","HTML","CSV par email"], a:1,
+   e:"Le format <b>SARIF</b> est le standard d'échange. Il est uploadé par <code>github/codeql-action/upload-sarif</code> et s'affiche dans l'onglet <b>Security</b> du dépôt."},
+
+  // ---------- SIGNATURE / COSIGN ----------
+  {cat:"Signature & Cosign", q:"Cosign signe l'image par rapport à quoi, pour garantir l'immuabilité ?",
+   opts:["Le tag mutable (ex. :latest)","Le digest SHA256 de l'image (immuable)","Le nom du dépôt","La date du build"], a:1,
+   e:"Cosign signe par <b>digest</b> (<code>image@sha256:...</code>), qui est <b>immuable</b>, et non par tag mutable qui peut être réécrit."},
+
+  {cat:"Signature & Cosign", q:"Pourquoi utiliser « --new-bundle-format=false » lors du cosign sign ?",
+   opts:["Pour aller plus vite","Pour produire la signature dans l'ancien format (simplesigning, tag-based) que Harbor reconnaît → coche verte « Signé »","Pour ne pas signer du tout","Pour utiliser une clé publique"], a:1,
+   e:"Cosign v3 signe par défaut en bundle Sigstore (OCI 1.1 referrers) que <b>Harbor classe en accessoire générique</b> et laisse la colonne « Signé » en rouge. L'ancien format <b>simplesigning</b> est reconnu comme <code>signature.cosign</code> → coche verte."},
+
+  {cat:"Signature & Cosign", q:"À quoi sert l'étape « cosign verify » après la signature ?",
+   opts:["À pousser l'image","À servir de gate bloquante : la CI échoue si la signature ne se vérifie pas","À générer la clé privée","À supprimer l'image"], a:1,
+   e:"<code>cosign verify</code> dérive la clé publique de la clé privée et vérifie la signature qu'on vient de produire. C'est une <b>étape bloquante (gate)</b> : si la vérif échoue, la CI échoue."},
+
+  {cat:"Signature & Cosign", q:"Comment le job cosign s'authentifie-t-il auprès de Harbor ?",
+   opts:["Avec le token GitHub","Avec un compte robot Harbor (HARBOR_USERNAME / HARBOR_PASSWORD en secrets)","En anonyme","Avec la clé cosign"], a:1,
+   e:"Login via <code>docker/login-action</code> avec un <b>robot account Harbor</b> (secrets <code>HARBOR_USERNAME</code> / <code>HARBOR_PASSWORD</code>), le host venant de la variable <code>HARBOR_HOST</code>."},
+
+  {cat:"Signature & Cosign", q:"Où sont stockées la clé privée Cosign et son mot de passe utilisés par la CI ?",
+   opts:["En clair dans le repo","Dans les GitHub Actions Secrets (COSIGN_PRIVATE_KEY / COSIGN_PASSWORD)","Dans Vault uniquement","Dans le Dockerfile"], a:1,
+   e:"Ce sont des <b>secrets GitHub Actions</b> (<code>COSIGN_PRIVATE_KEY</code>, <code>COSIGN_PASSWORD</code>), injectés en variables d'environnement de l'étape de signature, jamais en clair."},
+
+  // ---------- VISION GLOBALE ----------
+  {cat:"Vision DevSecOps", q:"La CI applique une démarche « en couches ». Quel est le bon résumé ?",
+   opts:["Uniquement de la qualité de code","Qualité IaC → Sécurité IaC (SAST) → Sécurité du code (SAST) → Sécurité conteneur → DAST → signature","Uniquement des tests unitaires","Déploiement direct sans contrôle"], a:1,
+   e:"Couches : <b>1.</b> Qualité IaC (fmt/validate/tflint) → <b>2.</b> Sécurité IaC (Checkov) → <b>3.</b> Sécurité du code (Semgrep) → <b>4.</b> Sécurité conteneur (Trivy) → <b>5.</b> DAST (ZAP) → <b>6.</b> Build + signature vérifiée (Cosign)."},
+
+  {cat:"Vision DevSecOps", q:"Le service Vault est en ClusterIP. Comment accède-t-on à son UI depuis le PC ?",
+   opts:["Directement via l'IP 172.x du pod","Via kubectl port-forward svc/vault 8200:8200 puis http://127.0.0.1:8200","Via une route publique","Impossible"], a:1,
+   e:"ClusterIP n'est pas exposé hors du cluster. On crée un tunnel : <code>kubectl -n vault port-forward svc/vault 8200:8200</code> puis <b>http://127.0.0.1:8200</b> (token <code>root</code>). Toujours <code>127.0.0.1</code>, jamais l'IP interne."}
+];
+
+let order = [];
+const quizEl = document.getElementById('quiz');
+const counterEl = document.getElementById('counter');
+const progEl = document.getElementById('progfill');
+const scorePill = document.getElementById('scorePill');
+const resultEl = document.getElementById('result');
+const answers = {};
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function render(){
+  quizEl.innerHTML='';
+  resultEl.classList.remove('show');
+  for(const key in answers) delete answers[key];
+  order = shuffle([...Array(QUESTIONS.length).keys()]);
+  order.forEach((qi,idx)=>{
+    const Q=QUESTIONS[qi];
+    const card=document.createElement('div');
+    card.className='q';
+    card.innerHTML=`<div class="cat">${Q.cat}</div>
+      <div class="num">Question ${idx+1} / ${QUESTIONS.length}</div>
+      <h3>${Q.q}</h3>`;
+    Q.opts.forEach((opt,oi)=>{
+      const o=document.createElement('label');
+      o.className='opt';
+      o.dataset.qi=qi; o.dataset.oi=oi;
+      o.innerHTML=`<span class="mk">${String.fromCharCode(65+oi)}</span>${opt}`;
+      o.onclick=()=>select(qi,oi,card);
+      card.appendChild(o);
+    });
+    const ex=document.createElement('div');
+    ex.className='expl'; ex.dataset.exqi=qi;
+    ex.innerHTML=Q.e;
+    card.appendChild(ex);
+    quizEl.appendChild(card);
+  });
+  update();
+}
+
+function select(qi,oi,card){
+  if(resultEl.classList.contains('show')) return; // figé après validation
+  answers[qi]=oi;
+  card.querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  card.querySelector(`.opt[data-oi="${oi}"]`).classList.add('sel');
+  if(document.getElementById('instant').checked){
+    revealCard(card,qi);
+  }
+  update();
+}
+
+function revealCard(card,qi){
+  const Q=QUESTIONS[qi];
+  card.querySelectorAll('.opt').forEach(o=>{
+    const oi=+o.dataset.oi;
+    o.classList.remove('sel');
+    if(oi===Q.a) o.classList.add('correct');
+    else if(oi===answers[qi]) o.classList.add('wrong');
+  });
+  card.querySelector('.expl').classList.add('show');
+}
+
+function update(){
+  const n=Object.keys(answers).length;
+  counterEl.textContent=`${n} / ${QUESTIONS.length} répondues`;
+  progEl.style.width=(n/QUESTIONS.length*100)+'%';
+}
+
+function grade(){
+  let score=0;
+  order.forEach(qi=>{
+    const card=quizEl.children[order.indexOf(qi)];
+    revealCard(card,qi);
+    if(answers[qi]===QUESTIONS[qi].a) score++;
+  });
+  const pct=Math.round(score/QUESTIONS.length*100);
+  scorePill.textContent=`Score : ${score}/${QUESTIONS.length}`;
+  let msg;
+  if(pct===100) msg="Parfait ! Tu maîtrises toute la pipeline. 🏆";
+  else if(pct>=80) msg="Très bien — quelques détails à revoir.";
+  else if(pct>=60) msg="Correct, mais relis les explications en rouge.";
+  else msg="À retravailler : reprends la DOCUMENTATION.md et le CI.yml.";
+  resultEl.innerHTML=`<div class="big">${score}/${QUESTIONS.length} <span style="font-size:1.2rem;color:var(--muted)">(${pct}%)</span></div><div class="msg">${msg}</div>`;
+  resultEl.classList.add('show');
+  resultEl.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+document.getElementById('submit').onclick=grade;
+document.getElementById('reset').onclick=()=>{scorePill.textContent='Score : –';render();window.scrollTo({top:0,behavior:'smooth'});};
+render();
+</script>
+</body>
+</html>
